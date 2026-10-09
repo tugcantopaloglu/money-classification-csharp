@@ -1,7 +1,8 @@
-﻿using System;
+using System;
 using System.IO; //txt okumak için
 using System.Collections.Generic;
 using System.Linq;
+using System.Globalization;
 
 namespace PROJE_TEST
 {
@@ -48,15 +49,15 @@ namespace PROJE_TEST
                 Console.WriteLine("REFERANS PARALAR:");
                 WriteTableHeader("");
                 Write2DArray(gatheredValues.Item1);
-                Console.WriteLine("PARANIN TAHMİN EDİLEN TÜRÜ:" + enteredValues.Item2);
+                Console.WriteLine("PARANIN TAHMİN EDİLEN TÜRÜ:" + gatheredValues.Item2);
                 Console.WriteLine();
-                if(testData[i,4] == enteredValues.Item2)
+                if(testData[i,4] == gatheredValues.Item2)
                 {
                     successfullyFound++;
                 }
             }
             Console.WriteLine("BAŞARI ORANI:");
-            Console.WriteLine(successfullyFound / testData.GetLength(0));
+            Console.WriteLine((double)successfullyFound / testData.GetLength(0));
             Console.WriteLine("");
 
 
@@ -168,7 +169,7 @@ namespace PROJE_TEST
 
         }
         
-        static double[,] ReadFile(string fileName)
+        internal static double[,] ReadFile(string fileName)
         {
             string[] rawLines = File.ReadAllLines(fileName); //txt okuyor //hedef aldığı lokasyon = \PROJE-TEST\PROJE-TEST\bin\Debug\netcoreapp3.1\data_banknote_authentication.txt
             double[,] lastLines = new double[rawLines.GetLength(0),5]; //txtden okuduğumuz verileri işledikten sonra satır ve sütun olarak aktarabileceğimiz bir liste
@@ -179,102 +180,43 @@ namespace PROJE_TEST
                 
                 for (int i = 0; i < 5; i++) //sütunları işlenmiş listedeki satırlara sütun olarak atıyor
                 {
-                    col[i] = col[i].Replace('.', ','); //burada columndaki değerler string olduğu için gerekli double a dönüştürme işlemi yapabilmek için c# standartı olan sayıdan sonra "," için nokayı virgül ile değiştiriyoruz
-                    lastLines[lastLineIndex,i] = Math.Round(Convert.ToDouble(col[i]),2); //düzenlenmiş stringi hem double yapıp hem de virgülden sonra 2 sayı olacak şekilde yuvarlıyoruz
+                    lastLines[lastLineIndex,i] = Math.Round(double.Parse(col[i], CultureInfo.InvariantCulture),2);
                 }
                 lastLineIndex++;
             }
             return lastLines; //işlenmiş arrayi çıktı veriyor
         }
 
-        //2-A
-        static (double[,],int) KNN(double varyans, double carpiklik, double basiklik, double entropi, int k, double[,] lines) //bu metod seçilen paraların bilgileri ve test edilen paranın gerçeklik değeri olmak üzere 2 değeri olan bir tuple döndürüyor
+        internal static (double[,], int) KNN(double varyans, double carpiklik, double basiklik, double entropi, int k, double[,] lines)
         {
-
-            IDictionary<double, double> calculatedList = new Dictionary<double, double>(); ; // list of list şeklinde 2d benzeri list yaptık
-            double[,] selectedMoneyInfo = new double[k,5]; //her işlem yapıldıktan sonra return ile döndürelecek array bu array seçilen paraların özelliklerini ve bulduğumuz tahmini içeriyor
-            int realMoney = 0;
-            int fakeMoney = 0;
-            int isMoneyReal = -1; // 0 ise sahte 1 ise gerçek değerine denk olacak ve ileride yapılacak hesaplamalar ile değeri değiştirilecek paranın gerçeklik değeri
-
-
-            //değerleri hesaplama başlangıcı
-            for (int line = 0; line < lines.GetLength(0); line++)
+            if (k <= 0 || k > lines.GetLength(0))
             {
-                int loop = 0;
-                double rawDistance = 0;
-                double moneyType = -1;
-                for (int column = 0; column < 4; column++)
-                {
-                    double result = 0; //sonuç her döngüde sıfırlanıyor ve atanıyor ki sonraki işlemde sıkıntı yaşanmasın
-                    if (loop == 0) //gerekli hesapları her döngüde yapıyor
-                    {
-                        result = TwoPointDistance(Math.Round(varyans, 2), lines[line, column]);
-                    }
-                    else if (loop == 1)
-                    {
-                        result = TwoPointDistance(Math.Round(carpiklik, 2), lines[line, column]);
-                    }
-                    else if (loop == 2)
-                    {
-                        result = TwoPointDistance(Math.Round(basiklik, 2), lines[line, column]);
-                    }
-                    else if (loop == 3)
-                    {
-                        result = TwoPointDistance(Math.Round(entropi, 2), lines[line, column]);
-                    }
-                    else //para tipini alıyor
-                    {
-                        moneyType = lines[line, column];
-                    }
-                    rawDistance += result; // sonuçlar ekleniyor
-                    loop++;
-                }
-                if (calculatedList.ContainsKey(rawDistance)) { }
-                else { calculatedList.Add(rawDistance, line); } //sözlüğe hesaplanan değer ve o hesaplanan değerin txt dosyasındaki hangi değerden hesaplandığının indexini atıyor
-                
-            }
-            var list = calculatedList.Keys.ToList(); //burada key'e yani rawDistance'a göre sıralandı
-            list.Sort();
-
-            for (int i = 0; i < k; i++) 
-            {
-                
-                int index = Convert.ToInt32(calculatedList.ElementAt(i).Value); //index değerini arrayde kullanabilmek için double tipinden integer tipine dönüştürdük
-                if (lines[index, 4] == 1) //lines[calculatedList[index,5] yapısı sözlükten en düşük değeri seçip o değerin txtden fake veya real olması değerini alıyor //gerçek para değeri 1 ise realMoney değişkenini arttırıyor
-                {
-                    realMoney++;
-                }
-                else
-                {
-                    fakeMoney++;
-                }
-                
-
-            }
-            if (realMoney >= fakeMoney)
-            {
-                isMoneyReal = 1;
-            }
-            else
-            {
-                isMoneyReal = 0;
+                throw new ArgumentOutOfRangeException(nameof(k));
             }
 
-            for (int i = 0; i < k; i++) //k tane paranın özelliklerini listeye atayacağız (ayrıca satır sayısı)
-            {
-                int index = Convert.ToInt32(calculatedList.ElementAt(i).Value);
-                for (int j = 0; j<5; j++) //(sütun sayısı)
+            double[] features = { varyans, carpiklik, basiklik, entropi };
+            var neighbors = Enumerable.Range(0, lines.GetLength(0))
+                .Select(index => new
                 {
-                    selectedMoneyInfo[i, j] = lines[index, j];
+                    Index = index,
+                    Distance = Enumerable.Range(0, 4).Sum(column => Math.Pow(features[column] - lines[index, column], 2))
+                })
+                .OrderBy(row => row.Distance)
+                .ThenBy(row => row.Index)
+                .Take(k)
+                .ToArray();
+
+            var selectedMoneyInfo = new double[k, 5];
+            for (int row = 0; row < neighbors.Length; row++)
+            {
+                for (int column = 0; column < 5; column++)
+                {
+                    selectedMoneyInfo[row, column] = lines[neighbors[row].Index, column];
                 }
             }
-            return (selectedMoneyInfo,isMoneyReal); //item1= selectedMoneyInfo , item2= isMoneyReal
 
-
-
+            int realMoney = neighbors.Count(row => lines[row.Index, 4] == 1);
+            return (selectedMoneyInfo, realMoney >= k - realMoney ? 1 : 0);
         }
-  
     }
 }
-

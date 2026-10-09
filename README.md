@@ -1,21 +1,26 @@
-# Project Details
-Made while taking data structres class. Made with Turkish language for class.  
+# Banknote Classification and Distance Matrices
 
-**Project Problems:** Arrays, Matrices, Methods, Random Numbers   
+A C# console exercise from a data structures course. It generates random 2D points, prints distance matrices, classifies a supplied banknote with k-nearest neighbors, and evaluates the committed test dataset. The original variable names and console prompts are Turkish.
 
-**Explanations:**    
-First mission was generating distance matrix from points in a 2D plane. A distance matrix is a table that shows the distance between pairs of objects. You can take a look this examples to understand that.  
-  
-Take column and the line as a point referance.  
-![DM_1](https://user-images.githubusercontent.com/53763911/132686779-b7deecf1-5d4b-4d38-a37c-454a86bbc8fd.PNG)  
+## Run
 
-![DM_2](https://user-images.githubusercontent.com/53763911/132686786-5ed55eb6-5555-4287-90c9-0bd43a5c9f21.PNG)  
+Install the .NET 8 SDK or a compatible newer SDK, then run from the repository root:
 
-So distance matrix formula is this.
+```sh
+dotnet build MoneyClassification.csproj --configuration Release
+dotnet run --project MoneyClassification.csproj --configuration Release --no-build
+```
 
-![DM_formula](https://user-images.githubusercontent.com/53763911/132686997-45aec62f-5261-42c9-8e57-ad87b8430d80.PNG)
-  
-Second one was money classification using K-Nearest neighbors (KNN) algorithm. In the end program checking every money if it is real or not with given banknote data. Banknote data has variance, skewness, kurtosis and entropy. Using this values as a authentication value with KNN and proccess them with given test banknotes. Take a look for example money data.  
+The program asks for variance, skewness, kurtosis, entropy, and the neighbor count `k`. It reads `data_banknote_authentication.txt` and `test_data.txt` from the working directory, so keep those files beside the working directory when launching a built binary elsewhere. Each CSV row contains four numeric features followed by the class label. File decimals use a period and are parsed independently of the machine's locale; interactive numeric input follows the current console culture.
 
-![Money_Data](https://user-images.githubusercontent.com/53763911/132687406-aaee8ae6-aab4-4b16-ba80-9ac5b2f1d622.PNG)  
+Nearest neighbors are ranked by squared Euclidean distance across all four features. Equal distances retain all rows, with original row order as the deterministic tie-breaker. The neighbor count must be between one and the reference dataset's row count. A tied class vote selects label 1, matching the existing exercise convention.
 
+The evaluation prints the prediction for each test row and the fraction of correctly classified rows. This is an educational classifier, not a validated currency authentication product. Features are not normalized and the exercise rounds loaded features to two decimal places.
+
+## Tests
+
+```sh
+dotnet test tests/MoneyClassification.Tests/MoneyClassification.Tests.csproj --configuration Release
+```
+
+The regression suite covers actual nearest-row selection, equal-distance neighbors, use of all four features, invalid neighbor counts, locale-independent dataset parsing, and the console's per-row predictions and fractional accuracy. No network service or extra dataset is required.
